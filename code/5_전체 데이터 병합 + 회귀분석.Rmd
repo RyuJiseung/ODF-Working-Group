@@ -1,0 +1,163 @@
+---
+title: "5. 전체 데이터 병합 & 회귀분석"
+author: "jiseungRyu"
+date: '2017 11 27 '
+output: html_document
+---
+
+Load libraries and helper functions
+```{r, message = FALSE}
+# general visualisation
+library(needs)
+needs(tidyverse,scales,grid,gridExtra,RColorBrewer,corrplot,readr,stringr,
+        data.table,tibble,tidyr,stringr,forcats,lubridate,ggforce,ggridges)
+```
+
+#### REC  가격
+
+http://www.knrec.or.kr/knrec/index.asp
+
+```{r}
+rec <- read_csv("../data_need/REC_SMP.csv")
+
+rec$date_ym <- substr(rec$date,1,6) %>% as.numeric()
+```
+
+
+#### 연료단가(20170501까지 밖에 자료가 없음)
+
+http://epsis.kpx.or.kr
+
+```{r}
+fuel <- read_csv("../data_need/연료단가.csv")[-1,]
+fuel$date <- gsub("월","",fuel$date)
+fuel$year <- str_sub(fuel$date,1,4) %>% as.numeric()
+fuel$month <- str_sub(fuel$date,6,8) %>% as.numeric()
+fuel$date <- fuel %>% with(ifelse(nchar(month)==1,paste0(year,"0",month,"01"),paste0(year,month,"01")))
+fuel <- fuel %>% select(-year, -month)
+colnames(fuel)[3]<-"Bituminous_coal"
+
+fuel$Oil_up <- c(1,diff(fuel$Oil))/fuel$Oil
+fuel$LNG_up <- c(1,diff(fuel$LNG))/fuel$LNG
+
+fuel$date_ym <- substr(fuel$date,1,6) %>% as.numeric()
+fuel <- fuel %>% select(-date)
+fuel[,1:7]<-lapply(fuel[,1:7],as.numeric)
+```
+
+
+#### 물가지수(20171101까지 자료존재)
+
+http://data.seoul.go.kr/openinf/linkview.jsp?infId=OA-11716
+
+```{r}
+Prices  <- read_csv("../data_need/물가.csv")[-72,]
+Prices$date <- Prices %>% with(ifelse(nchar(Prices$date)==6,paste0(date,"0.01"),paste0(date,".01")))
+Prices$date <- gsub("-","",as.Date(Prices$date,"%Y.%m.%d"))
+
+Prices$생활물가지수_up <- c(1,diff(Prices$생활물가지수))/Prices$생활물가지수
+Prices$식품_up <- c(1,diff(Prices$식품))/Prices$식품
+Prices$식품_이외_up <- c(1,diff(Prices$식품_이외))/Prices$식품_이외
+Prices$전월세_up <- c(1,diff(Prices$전월세))/Prices$전월세
+Prices$전월세포함_생활물가지수_up <- c(1,diff(Prices$전월세포함_생활물가지수))/Prices$전월세포함_생활물가지수
+
+Prices$date_ym <- substr(Prices$date,1,6) %>% as.numeric()
+Prices <- Prices %>% select(-date)
+```
+
+
+#### 원유(2016/3)
+
+http://www.opinet.co.kr/glopcoilSelect.do#
+
+```{r}
+Oil <- read_csv("../data_need/National_OIL.csv")
+
+Oil$두바이유상승률 <- c(1,diff(Oil$두바이유))/Oil$두바이유
+Oil$브렌트유상승률 <- c(1,diff(Oil$브렌트유))/Oil$브렌트유
+Oil$서부텍사스중질유상승률 <- c(1,diff(Oil$서부텍사스중질유))/Oil$서부텍사스중질유
+
+Oil$date_ym <- substr(Oil$date,1,6) %>% as.numeric()
+Oil <- Oil %>% select(-date)
+```
+
+#### GDP
+
+http://www.opinet.co.kr/glopcoilSelect.do#
+
+```{r}
+GDP <- read_csv("../data_need/GDP.csv")
+colnames(GDP)[1] <- "date"
+GDP$date <- substr(gsub("\r\r","/",GDP$date),1,6)
+GDP$국내총생산_명목GDP_up <- c(1,diff(GDP$국내총생산_명목GDP))/GDP$국내총생산_명목GDP
+GDP$경제성장률_실질GDP성장률_up <- c(1,diff(GDP$경제성장률_실질GDP성장률))/GDP$경제성장률_실질GDP성장률
+GDP$date<- ifelse(substr(GDP$date,6,6)=="1",paste0(substr(GDP$date,1,4),"0301"),
+                  ifelse(substr(GDP$date,6,6)=="2",paste0(substr(GDP$date,1,4),"0601"),
+                         ifelse(substr(GDP$date,6,6)=="3",paste0(substr(GDP$date,1,4),"0901"),
+                                ifelse(substr(GDP$date,6,6)=="4",paste0(substr(GDP$date,1,4),"1201"),"error"))))
+
+GDP$date_ym <- substr(GDP$date,1,6) %>% as.numeric()
+GDP <- GDP %>% select(-date)
+
+GDP1<-GDP
+GDP1$date_ym <- GDP1$date_ym-1
+
+GDP2<-GDP
+GDP2$date_ym <- GDP2$date_ym-2
+
+GDP <- GDP %>% bind_rows(GDP1) %>% bind_rows(GDP2) %>% arrange(date_ym)
+```
+
+#### 연말 변수 : 연말로 향할수록 RPS 불이행을 최소화하기 위해 가격이 오른 이력이 있다.
+
+#### 정부정책 : 정부가 신재생에너지 생산량을 보호하기 위해 만든 시장이기 때문에 정부의 정책에 따라 크게 휘둘린다. Ex) 과징금, 통합 시장 이후 태양광 의무공급량 제한 해제, 정부의 신재생에너지 20%확대 정책 등
+
+
+#### 전라남도 날씨 데이터(2016년부터 존재)
+
+http://www.kweather.co.kr/main/main.html
+
+```{r}
+weather <- read_csv("../data_need/weather_전라남도.csv")
+weather <- weather %>% subset(date <= 20171212)
+weather$check <- ifelse(weather$date %in% rec$date[rec$date>=20160101],weather$date,0)
+
+for (i in nrow(weather):1){
+  temp <- ifelse(weather$check[i]!=0,weather$check[i],temp)
+  weather$check[i] <- ifelse(weather$check[i]==0,temp,weather$check[i])
+}
+
+temp <- weather %>% mutate(index=1) %>% dcast(check ~ weather_str,value.var="index")
+colnames(temp)[1] <- "date"
+temp1 <- weather %>% group_by(check) %>% select(-weather_str,-date) %>% summarise_all(funs(sum = sum))
+colnames(temp1)[1] <- "date"
+temp <- temp %>% left_join(temp1)
+weather_temp <- temp
+```
+
+
+### Modeling
+
+```{r}
+total <- rec %>% left_join(fuel,by="date_ym") %>% 
+  left_join(Prices,by="date_ym") %>% left_join(Oil,by="date_ym") %>% 
+  left_join(GDP,by="date_ym") %>% left_join(weather_temp,by="date")
+
+location_in_total <- total %>% 
+                          subset(date>=20160304 & date<=20171101) %>% 
+                          subset(!is.na(LNG)) %>%
+                          subset(location_in==1) %>% 
+                          select(-date_ym,-energy_sun,-energy_general,-type,-min_price,-max_price,-count,-location_in,-location_out)
+
+summary(lm.fit.in<-lm(price ~ . ,data=location_in_total[,c(1:16,31:40)]))
+
+
+location_out_total <- total %>% 
+                          subset(date>=20160304 & date<=20171101) %>% 
+                          subset(!is.na(LNG)) %>%
+                          subset(location_out==1) %>% 
+                          select(-date_ym,-energy_sun,-energy_general,-type,-min_price,-max_price,-count,-location_in,-location_out)
+
+summary(lm.fit.out<-lm(price ~ . ,data=location_out_total[,c(1:16,31:40)]))
+```
+
