@@ -22,7 +22,51 @@ needs(tidyverse,scales,grid,gridExtra,RColorBrewer,corrplot,readr,stringr,
         data.table,tibble,tidyr,stringr,forcats,lubridate,ggforce,ggridges)
 ```
 
-# 데이터 로드
+# 2012-01-01 이후 데이터 로드
+```{r}
+total <- read.csv("../data_need/jiseung_20120101_20171130.csv")
+```
+
+# 변수 EDA
+
+## REC 가격
+
+http://www.knrec.or.kr/knrec/index.asp
+
+```{r}
+rec <- total %>% select(date,price,SMP,type)
+
+ggplot(data=rec, aes(x=ymd(date),y = price,color=type)) + 
+  geom_line() +
+  scale_x_date(labels = date_format("%Y-%m-%d")) +
+  labs(y="price",x="date")
+```
+
+
+## smp 가격
+
+http://epsis.kpx.or.kr/epsisnew/selectEkmaSmpShdGrid.do?menuId=050202
+
+```{r}
+ggplot(data=rec, aes(x=ymd(date),y = SMP,color=type)) + 
+  geom_line() +
+  scale_x_date(labels = date_format("%Y-%m-%d")) +
+  labs(y="price",x="date")
+```
+
+
+- 정책이 달라지는 시기
+
+
+| date              | energy      | location | Min/Max Price |
+| ----------------- | ----------- | -------- | ------------- |
+| 20120228~20150508 | General/Sun | Total    | No            |
+| 20150513~20160217 | General/Sun | In/Out   | Yes           |
+| 20160304~20170315 | Total       | In/Out   | Yes           |
+| 20170328~20171128 | Total       | In/Out   | Yes           |
+
+
+# 2016-03-04 이후 데이터 로드
 ```{r}
 total <- read.csv("../data_need/jiseung_20160304_20171130.csv")
 ```
