@@ -1,0 +1,139 @@
+---
+title: "5. 데이터 시각화"
+author: "jiseungRyu"
+date: '2017 11 27 '
+output: html_document
+editor_options: 
+  chunk_output_type: inline
+---
+
+Load libraries and helper functions
+```{r, message = FALSE}
+# general visualisation
+library(needs)
+needs(tidyverse,scales,grid,gridExtra,RColorBrewer,corrplot,readr,stringr,
+        data.table,tibble,tidyr,stringr,forcats,lubridate,ggforce,ggridges)
+```
+
+
+#### 정책이 달라지는 구간
+
+| date              | energy      | location | Min/Max Price |
+| ----------------- | ----------- | -------- | ------------- |
+| 20120228~20150508 | General/Sun | Total    | No            |
+| 20150513~20160217 | General/Sun | In/Out   | Yes           |
+| 20160304~20170315 | Total       | In/Out   | Yes           |
+| 20170328~20171128 | Total       | In/Out   | Yes           |
+
+#### REC  가격
+
+http://www.knrec.or.kr/knrec/index.asp
+
+```{r}
+total <- read.csv("../data_need/jiseung_20160304_20171130.csv")
+rec <- total %>% select(date,price,SMP,type)
+
+ggplot(data=rec, aes(x=ymd(date),y = price,color=type)) + 
+  geom_line() +
+  scale_x_date(labels = date_format("%Y-%m-%d")) +
+  labs(y="price",x="date")+ facet_wrap(~ type)+ theme(axis.text.x = element_text(angle = 90, hjust = 1))
+```
+
+
+#### smp 가격
+
+http://epsis.kpx.or.kr/epsisnew/selectEkmaSmpShdGrid.do?menuId=050202
+
+```{r}
+ggplot(data=rec, aes(x=ymd(date),y = SMP,color=type)) + 
+  geom_line() +
+  scale_x_date(labels = date_format("%Y-%m-%d")) +
+  labs(y="price",x="date") + facet_wrap(~ type)+ theme(axis.text.x = element_text(angle = 90, hjust = 1))
+```
+
+SMP 가격이 높아지면서 REC 가격 상승(최근) 
+
+최근 신재생에너지 투자가 인기가 많아지면서 투자자가 몰려 발전량 자체가 많아졌다 => REC가격의 하락
+
+
+#### 물가지수(20171101까지 자료존재)
+
+http://data.seoul.go.kr/openinf/linkview.jsp?infId=OA-11716
+
+```{r}
+Prices1  <- total[,c(1,13:17)]
+Prices1 <- melt(Prices1, id.vars = "date")
+Prices1$value <- Prices1$value %>% as.numeric()
+
+Prices1 %>% 
+  ggplot(aes(x=ymd(date),y = value,color=variable)) + 
+  geom_line() +
+  scale_x_date(labels = date_format("%Y-%m-%d"))   + 
+  labs(y="연료단가",x="date")+ facet_wrap(~ variable)+ theme(axis.text.x = element_text(angle = 90, hjust = 1))
+```
+
+```{r}
+Prices2 <- total %>% select(1,18:22)
+Prices2 <- melt(Prices2, id.vars = "date")
+Prices2$value <- Prices2$value %>% as.numeric()
+
+Prices2 %>% 
+  ggplot(aes(x=ymd(date),y = value,color=variable)) + 
+  geom_line() +
+  scale_x_date(labels = date_format("%Y-%m-%d"))   + 
+  labs(y="연료단가",x="date") + facet_wrap(~ variable)+ theme(axis.text.x = element_text(angle = 90, hjust = 1))
+```
+
+
+#### 전라남도 날씨 데이터(2016년부터 존재)
+
+http://www.kweather.co.kr/main/main.html
+
+```{r}
+weather <- total %>% select(1,26:35)
+```
+
+
+```{r}
+weather %>% select(1:7) %>% melt(id.vars = "date") %>%
+  ggplot(aes(x=ymd(date),y = value,color=variable)) + 
+  geom_line() +
+  scale_x_date(labels = date_format("%Y-%m-%d"))   + 
+  labs(y="날씨",x="date") + facet_wrap(~ variable)+ theme(axis.text.x = element_text(angle = 90, hjust = 1))
+```
+
+```{r}
+weather %>% select(1,8:11) %>% 
+  melt(id.vars = "date") %>%
+  ggplot(aes(x=ymd(date),y = value,color=variable)) + 
+  geom_line() +
+  scale_x_date(labels = date_format("%Y-%m-%d"))   + 
+  labs(y="mm,temperature",x="date") + facet_wrap(~ variable)+ theme(axis.text.x = element_text(angle = 90, hjust = 1))
+```
+
+#### 원유(2016/3)
+
+http://www.opinet.co.kr/glopcoilSelect.do#
+
+```{r}
+Oil <- read.table("../data_need/National_OIL.csv",sep=",",header=TRUE)
+colnames(Oil)[1] <- "date"
+Oil$date <- gsub("_","",Oil$date)
+Oil$date <- paste0("20",Oil$date) %>% as.numeric()
+Oil <- Oil %>% subset(Dubai!=0&Brent!=0&WTI!=0)
+```
+
+```{r}
+Oil1 <- melt(Oil, id.vars = "date")
+Oil1$value <- Oil1$value %>% as.numeric()
+
+Oil1 %>% 
+  ggplot(aes(x=ymd(date),y = value,color=variable)) + 
+  geom_line() +
+  scale_x_date(labels = date_format("%Y-%m-%d"))   + 
+  labs(y="price",x="date")+ facet_wrap(~ variable) + theme(axis.text.x = element_text(angle = 90, hjust = 1))
+```
+
+#### 연말 변수 : 연말로 향할수록 RPS 불이행을 최소화하기 위해 가격이 오른 이력이 있다.
+
+#### 정부정책 : 정부가 신재생에너지 생산량을 보호하기 위해 만든 시장이기 때문에 정부의 정책에 따라 크게 휘둘린다. Ex) 과징금, 통합 시장 이후 태양광 의무공급량 제한 해제, 정부의 신재생에너지 20%확대 정책 등

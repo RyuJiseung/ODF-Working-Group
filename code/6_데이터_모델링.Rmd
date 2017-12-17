@@ -1,0 +1,143 @@
+---
+title: "6. 데이터 모델링"
+author: "jiseungRyu"
+date: '2017 11 27 '
+output: html_document
+editor_options: 
+  chunk_output_type: inline
+---
+
+### Load libraries and helper functions
+```{r, message = FALSE}
+# general visualisation
+library(needs)
+needs(tidyverse,scales,grid,gridExtra,RColorBrewer,corrplot,readr,stringr,
+        data.table,tibble,tidyr,stringr,forcats,lubridate,ggforce,ggridges,randomForest,nnet,gbm)
+```
+
+### train, test set 나누기
+```{r}
+total <- read.csv("../data_need/jiseung_20160304_20171130.csv")
+
+total_train <- total %>% subset(date>=20160304 & date<=20170600) %>%
+                          select(-date_ym,-type,-count,-max_price,-min_price)
+
+total_test <- total %>% subset(date>20170600) %>% 
+                          select(-date_ym,-type,-count,-max_price,-min_price)
+```
+
+
+------------------
+
+### 1.Regression
+```{r}
+# total_train <- total_train %>% select(-pred)
+# total_test <- total_test %>% select(-pred)
+
+summary(lm.fit.in<-lm(price ~ . ,data=total_train %>% select(-date)))
+
+total_train$pred <- predict(lm.fit.in,total_train)
+total_test$pred <- predict(lm.fit.in,total_test)
+
+total_s <- total_train %>% bind_rows(total_test)
+total_s %>% select(date,price,pred) %>% ggplot(aes(x=ymd(date),y=price))+
+  geom_point(color="black") + geom_point(aes(y=pred),color="red") + geom_vline(xintercept = ymd(20170530))
+
+sqrt(mean((total_train$pred - total_train$price)^2))
+sqrt(mean((total_test$pred - total_test$price)^2))
+```
+
+
+------------------
+
+#### 2.RandomForest 
+```{r}
+total_train <- total_train %>% select(-pred)
+total_test <- total_test %>% select(-pred)
+rf<-randomForest(price~. ,total_train %>% select(-date),ntree=200,importance=T)
+plot(rf)
+
+#가장 큰 영향력 있는 변수가 맨 위에 온다.
+var.imp<-data.frame(importance(rf,type=2))
+#importance는 지니계수 사용한 것임.
+var.imp$Variables <- row.names(var.imp)
+var.imp[order(var.imp$IncNodePurity,decreasing = T),]
+
+total_train$pred <- predict(rf,total_train)
+total_test$pred <- predict(rf,total_test)
+
+total_s <- total_train %>% bind_rows(total_test)
+total_s %>% select(date,price,pred) %>% ggplot(aes(x=ymd(date),y=price))+
+  geom_point(color="black") + geom_point(aes(y=pred),color="red") + geom_vline(xintercept = ymd(20170530))
+
+sqrt(mean((total_train$pred - total_train$price)^2))
+sqrt(mean((total_test$pred - total_test$price)^2))
+
+```
+
+
+------------------
+
+####  3. Neuralnet
+```{r}
+total_train <- total_train %>% select(-pred)
+total_test <- total_test %>% select(-pred)
+
+INPUT_NODES<-10
+HIDDEN_NODES<-INPUT_NODES*2
+OUTPUT_NODES<-5
+ITERATION<-100
+
+nnet_md<-nnet(formula = price~. ,data= total_train %>% select(-date),size=5,linout = TRUE,rang = 0.1,skip=TRUE,maxit = ITERATION)
+#sizt=은닉층 노드 수
+#linout=FALSE 모델 학습 시 모델의 출력과 원하는 값을 비교할 때 사용할 함수. TRUE면 엔트로피,FALSE면 SSE가 사용된다.
+#skip:입력변수가 출력변수로 은닉층 없이 연결되는지 여부, 직접 연결시 T
+#rang : 가중치의 초기값이 없다면 임의로 초기값 정함, (n, -rang, rang)
+#maxit : 훈련 최적화를 위한 반복횟수
+
+#모델완성
+total_train$pred<-predict(nnet_md,total_train,type="raw")
+total_test$pred<-predict(nnet_md,total_test,type="raw")
+
+total_s <- total_train %>% bind_rows(total_test)
+total_s %>% select(date,price,pred) %>% ggplot(aes(x=ymd(date),y=price))+
+  geom_point(color="black") + geom_point(aes(y=pred),color="red") + geom_vline(xintercept = ymd(20170530))
+
+sqrt(mean((total_train$pred - total_train$price)^2))
+sqrt(mean((total_test$pred - total_test$price)^2))
+```
+
+
+------------------
+
+####  4. Boosting
+```{r}
+total_train <- total_train %>% select(-pred)
+total_test <- total_test %>% select(-pred)
+
+boosting <- gbm(price~., data = total_train %>% select(-date),
+                distribution = "gaussian",
+                n.trees = 10000)
+
+
+#모델완성
+total_train$pred<-predict(boosting,total_train,n.trees=10000)
+total_test$pred<-predict(boosting,total_test,n.trees=10000)
+
+total_s <- total_train %>% bind_rows(total_test)
+total_s %>% select(date,price,pred) %>% ggplot(aes(x=ymd(date),y=price))+
+  geom_point(color="black") + geom_point(aes(y=pred),color="red") + geom_vline(xintercept = ymd(20170530))
+
+sqrt(mean((total_train$pred - total_train$price)^2))
+sqrt(mean((total_test$pred - total_test$price)^2))
+```
+
+
+
+[추가적으로 보고 싶은 것]
+
+1. http://blog.solarconnect.kr/221149950976
+
+2. 내년에 REC 의무할당량 2배 증가
+
+3. 신재생에너지 3020 로드맵 : http://www.mega-solar.co.kr/bbs/content.php?co_id=project02

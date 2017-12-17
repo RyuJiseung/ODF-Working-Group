@@ -1,0 +1,107 @@
+---
+title: "4. 데이터 병합"
+author: "jiseungRyu"
+date: '2017 11 27 '
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+###### Load libraries and helper functions
+```{r, message = FALSE}
+# general visualisation
+library(needs)
+needs(tidyverse,scales,grid,gridExtra,RColorBrewer,corrplot,readr,stringr,
+        data.table,tibble,tidyr,stringr,forcats,lubridate,ggforce,ggridges,
+      caret,party,e1071,kknn,nnet,gbm,pls,randomForest,glmnet)
+```
+
+#### REC 가격
+
+http://www.knrec.or.kr/knrec/index.asp
+
+```{r}
+rec <- read_csv("../data_need/REC_SMP.csv")
+
+rec$date_ym <- substr(rec$date,1,6) %>% as.numeric()
+```
+
+
+#### 물가지수(20171101까지 자료존재)
+
+http://data.seoul.go.kr/openinf/linkview.jsp?infId=OA-11716
+
+```{r}
+Prices  <- read_csv("../data_need/물가.csv")[-72,]
+Prices$date <- Prices %>% with(ifelse(nchar(Prices$date)==6,paste0(date,"0.01"),paste0(date,".01")))
+Prices$date <- gsub("-","",as.Date(Prices$date,"%Y.%m.%d"))
+
+Prices$생활물가지수_up <- c(1,diff(Prices$생활물가지수))/Prices$생활물가지수
+Prices$식품_up <- c(1,diff(Prices$식품))/Prices$식품
+Prices$식품_이외_up <- c(1,diff(Prices$식품_이외))/Prices$식품_이외
+Prices$전월세_up <- c(1,diff(Prices$전월세))/Prices$전월세
+Prices$전월세포함_생활물가지수_up <- c(1,diff(Prices$전월세포함_생활물가지수))/Prices$전월세포함_생활물가지수
+
+Prices$date_ym <- substr(Prices$date,1,6) %>% as.numeric()
+Prices <- Prices %>% select(-date)
+```
+
+
+#### 원유(2016/3)
+
+http://www.opinet.co.kr/glopcoilSelect.do#
+
+```{r}
+Oil <- read.table("../data_need/National_OIL.csv",sep=",",header=TRUE)
+colnames(Oil)[1] <- "date"
+Oil$date <- gsub("_","",Oil$date)
+Oil$date <- paste0("20",Oil$date) %>% as.numeric()
+```
+
+
+#### 전라남도 날씨 데이터(2016년부터 존재)
+
+http://www.kweather.co.kr/main/main.html
+
+```{r}
+weather <- read_csv("../data_need/weather_전라남도.csv")
+weather <- weather %>% subset(date <= 20171212)
+weather$check <- ifelse(weather$date %in% rec$date[rec$date>=20160101],weather$date,0)
+
+for (i in nrow(weather):1){
+  temp <- ifelse(weather$check[i]!=0,weather$check[i],temp)
+  weather$check[i] <- ifelse(weather$check[i]==0,temp,weather$check[i])
+}
+
+temp <- weather %>% mutate(index=1) %>% dcast(check ~ weather_str,value.var="index")
+colnames(temp)[1] <- "date"
+temp1 <- weather %>% group_by(check) %>% select(-weather_str,-date) %>% summarise_all(funs(sum = sum))
+colnames(temp1)[1] <- "date"
+temp <- temp %>% left_join(temp1)
+weather_temp <- temp
+```
+
+
+#### 연말 변수 : 연말로 향할수록 RPS 불이행을 최소화하기 위해 가격이 오른 이력이 있다.
+
+```{r}
+total <- rec %>%  left_join(Prices,by="date_ym") %>% left_join(Oil,by="date") %>% left_join(weather_temp,by="date")
+
+total$date_end <- ifelse(substr(total$date,5,6) %>% as.numeric() >= 12,1,0)
+total$before_count <- c(1,total$count[-377])
+```
+
+
+#### 정부정책 : 정부가 신재생에너지 생산량을 보호하기 위해 만든 시장이기 때문에 정부의 정책에 따라 크게 휘둘린다. 
+
+```{r}
+total$agenda1 <- ifelse(total$date %in% c(20150508,20150513,20160217,20160304,20170315,20170328),1,0)
+
+total$agenda1 <- ifelse(total$date>=20171100 & total$date<20171230,1,total$agenda1)
+
+# write.csv(total,"jiseung_20120101_20171130.csv",row.names=FALSE)
+
+total <- total %>% subset(date>=20160304 & date<=20171200)
+
+# write.csv(total,"jiseung_20160304_20171130.csv",row.names=FALSE)
+```
