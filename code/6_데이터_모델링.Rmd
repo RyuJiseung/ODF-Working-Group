@@ -24,11 +24,9 @@ needs(tidyverse,scales,grid,gridExtra,RColorBrewer,corrplot,readr,stringr,
 ```{r}
 total <- read.csv("../data_need/jiseung_20160304_20171130.csv")
 
-total_train <- total %>% subset(date>=20160304 & date<=20170600) %>%
-                          select(-date_ym,-type,-count,-max_price,-min_price)
+total_train <- total %>% subset(date>=20160304 & date<=20170600) 
 
-total_test <- total %>% subset(date>20170600) %>% 
-                          select(-date_ym,-type,-count,-max_price,-min_price)
+total_test <- total %>% subset(date>20170600)
 ```
 
 # 모델링

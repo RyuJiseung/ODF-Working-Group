@@ -313,6 +313,8 @@ total<span class="op">$</span>date_end &lt;-<span class="st"> </span><span class
 
 total<span class="op">$</span>agenda1 &lt;-<span class="st"> </span><span class="kw">ifelse</span>(total<span class="op">$</span>date<span class="op">&gt;=</span><span class="dv">20171100</span> <span class="op">&amp;</span><span class="st"> </span>total<span class="op">$</span>date<span class="op">&lt;</span><span class="dv">20171230</span>,<span class="dv">1</span>,total<span class="op">$</span>agenda1)
 
+total &lt;-<span class="st"> </span>total <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">select</span>(<span class="op">-</span>date_ym,<span class="op">-</span>count,<span class="op">-</span>max_price,<span class="op">-</span>min_price)
+
 <span class="co"># write.csv(total,&quot;jiseung_20120101_20171130.csv&quot;,row.names=FALSE)</span>
 
 total &lt;-<span class="st"> </span>total <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">subset</span>(date<span class="op">&gt;=</span><span class="dv">20160304</span> <span class="op">&amp;</span><span class="st"> </span>date<span class="op">&lt;=</span><span class="dv">20171200</span>)

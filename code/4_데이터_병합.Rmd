@@ -125,6 +125,8 @@ total$agenda1 <- ifelse(total$date %in% c(20150508,20150513,20160217,20160304,20
 
 total$agenda1 <- ifelse(total$date>=20171100 & total$date<20171230,1,total$agenda1)
 
+total <- total %>% select(-date_ym,-count,-max_price,-min_price)
+
 # write.csv(total,"jiseung_20120101_20171130.csv",row.names=FALSE)
 
 total <- total %>% subset(date>=20160304 & date<=20171200)
