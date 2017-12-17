@@ -1,0 +1,54 @@
+---
+title: "3. 전라남도 날씨 데이터 전처리"
+date: '`r Sys.Date()`'
+output:
+  html_document:
+    number_sections: true
+    fig_caption: true
+    toc: true
+    fig_width: 7
+    fig_height: 4.5
+    theme: cosmo
+    highlight: tango
+---
+
+# 패키지 로드
+```{r, message = FALSE}
+# general visualisation
+library(needs)
+needs(tidyverse,scales,grid,gridExtra,RColorBrewer,corrplot,readr,stringr,
+        data.table,tibble,tidyr,stringr,forcats,lubridate,ggforce,ggridges)
+```
+
+# 전라남도 날씨 데이터 전처리 
+
+<http://geozoonee.tistory.com/830>
+
+```{r}
+weather <- read_csv("../data_all/전라남도날씨.csv")
+colnames(weather) <- c("date","string")
+weather <- weather %>% subset(!is.na(string)|!is.na(date))
+weather$date_1 <- c(NA,sapply(1:nrow(weather),function(x)strsplit(weather$string,"cm")[[x]][2]))[-717]
+weather$date <- weather %>% with(ifelse(is.na(date),date_1,date))
+weather <- weather %>% select(-date_1)
+weather$weather_str <-sapply(1:nrow(weather),function(x)strsplit(weather$date," ")[[x]][2])
+weather$date <-sapply(1:nrow(weather),function(x)strsplit(weather$date," ")[[x]][1])
+which(weather$date == "2017")
+weather$date[2:367] <- paste0("2016",gsub("/","",weather$date[2:367]))
+weather$date[368:716] <- paste0("2017",gsub("/","",weather$date[368:716]))
+weather <- weather %>% subset(!is.na(weather_str))
+weather$min_Temperature<- sapply(1:nrow(weather),function(x)strsplit(substring(weather$string,8),"℃·")[[x]][1]) %>% as.numeric()
+weather$max_Temperature<- substring(sapply(1:nrow(weather),function(x)strsplit(substring(weather$string,8),"℃·")[[x]][2]) ,8) %>% as.numeric()
+weather$string <- substring(sapply(1:nrow(weather),function(x)strsplit(substring(weather$string,8),"℃·")[[x]][3]) , 8)
+weather$Precipitation <- sapply(1:nrow(weather),function(x)strsplit(weather$string,"mm·")[[x]][1]) %>% as.numeric()
+weather$snow <- substring(sapply(1:nrow(weather),function(x)strsplit(weather$string,"mm·")[[x]][2]),8)
+weather$snow <- sapply(1:nrow(weather),function(x)strsplit(weather$snow,"cm")[[x]][1]) %>% as.numeric()
+
+weather <- weather %>% select(-string)
+```
+
+
+```{r}
+# write.csv(weather,"weather_전라남도.csv",row.names=FALSE)
+```
+

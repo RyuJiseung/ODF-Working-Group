@@ -1,0 +1,36 @@
+---
+title: "1. REC 전처리"
+date: '`r Sys.Date()`'
+output:
+  html_document:
+    number_sections: true
+    fig_caption: true
+    toc: true
+    fig_width: 7
+    fig_height: 4.5
+    theme: cosmo
+    highlight: tango
+---
+
+# 패키지 로드
+```{r, message = FALSE}
+# general visualisation
+library(needs)
+needs(tidyverse,scales,grid,gridExtra,RColorBrewer,corrplot,readr,
+        data.table,tibble,tidyr,stringr,forcats,lubridate,ggforce,ggridges)
+```
+
+# REC 전처리
+```{r}
+rec <- read_csv("../data_all/rec_csv_jiseung.csv")
+rec$energy_sun <- rec %>% with(ifelse(energy=="sunn"|energy=="total",1,0))
+rec$energy_general <- rec %>% with(ifelse(energy=="general"|energy=="total",1,0))
+rec$location_in <- rec %>% with(ifelse(is.na(location)|location=="in",1,0))
+rec$location_out <- rec %>% with(ifelse(is.na(location)|location=="out",1,0))
+rec <- rec %>% select(date,count,amount,min_amount,max_amount,energy_sun,energy_general,location_in,location_out)
+rec <- rec %>% arrange(date,energy_sun,location_in)
+colnames(rec)[3:5] <- c("price","min_price","max_price")
+# write.csv(rec,"REC_jiseung_pretreatment.csv",row.names = FALSE)
+```
+
+
