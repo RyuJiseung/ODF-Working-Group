@@ -160,7 +160,8 @@ $(document).ready(function () {
 <li><a><span class="toc-section-number">2.3</span> 원유</a></li>
 <li><a href="#--"><span class="toc-section-number">2.4</span> 전라남도 날씨 데이터</a></li>
 <li><a href="#-"><span class="toc-section-number">2.5</span> 연말 변수</a></li>
-<li><a><span class="toc-section-number">2.6</span> 정부정책</a></li>
+<li><a href="#-"><span class="toc-section-number">2.6</span> 이전 거래량</a></li>
+<li><a><span class="toc-section-number">2.7</span> 정부정책</a></li>
 </ul></li>
 </ul>
 </div>
@@ -263,11 +264,14 @@ temp &lt;-<span class="st"> </span>temp <span class="op">%&gt;%</span><span clas
 <p>연말로 향할수록 RPS 불이행을 최소화하기 위해 가격이 오른 이력이 있다.</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">total &lt;-<span class="st"> </span>rec <span class="op">%&gt;%</span><span class="st">  </span><span class="kw">left_join</span>(Prices,<span class="dt">by=</span><span class="st">&quot;date_ym&quot;</span>) <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">left_join</span>(Oil,<span class="dt">by=</span><span class="st">&quot;date&quot;</span>) <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">left_join</span>(weather_temp,<span class="dt">by=</span><span class="st">&quot;date&quot;</span>)
 
-total<span class="op">$</span>date_end &lt;-<span class="st"> </span><span class="kw">ifelse</span>(<span class="kw">substr</span>(total<span class="op">$</span>date,<span class="dv">5</span>,<span class="dv">6</span>) <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">as.numeric</span>() <span class="op">&gt;=</span><span class="st"> </span><span class="dv">12</span>,<span class="dv">1</span>,<span class="dv">0</span>)
-total<span class="op">$</span>before_count &lt;-<span class="st"> </span><span class="kw">c</span>(<span class="dv">1</span>,total<span class="op">$</span>count[<span class="op">-</span><span class="dv">377</span>])</code></pre></div>
+total<span class="op">$</span>date_end &lt;-<span class="st"> </span><span class="kw">ifelse</span>(<span class="kw">substr</span>(total<span class="op">$</span>date,<span class="dv">5</span>,<span class="dv">6</span>) <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">as.numeric</span>() <span class="op">&gt;=</span><span class="st"> </span><span class="dv">12</span>,<span class="dv">1</span>,<span class="dv">0</span>)</code></pre></div>
+</div>
+<div id="-" class="section level2">
+<h2><span class="header-section-number">2.6</span> 이전 거래량</h2>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">total<span class="op">$</span>before_count &lt;-<span class="st"> </span><span class="kw">c</span>(<span class="dv">1</span>,total<span class="op">$</span>count[<span class="op">-</span><span class="dv">377</span>])</code></pre></div>
 </div>
 <div class="section level2">
-<h2><span class="header-section-number">2.6</span> 정부정책</h2>
+<h2><span class="header-section-number">2.7</span> 정부정책</h2>
 <p>정부가 신재생에너지 생산량을 보호하기 위해 만든 시장이기 때문에 정부의 정책에 따라 크게 휘둘린다.</p>
 <table>
 <thead>

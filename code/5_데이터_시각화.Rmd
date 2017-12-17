@@ -153,3 +153,12 @@ total %>%
   scale_x_date(labels = date_format("%Y-%m-%d")) + 
   labs(y="agenda",x="date")
 ```
+
+## 이전 거래량 
+```{r}
+total %>% 
+  ggplot(aes(x=ymd(date),y = before_count)) + 
+  geom_line() +
+  scale_x_date(labels = date_format("%Y-%m-%d")) + 
+  labs(y="before_count",x="date")
+```

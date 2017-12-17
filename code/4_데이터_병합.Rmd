@@ -98,8 +98,14 @@ weather_temp <- temp
 total <- rec %>%  left_join(Prices,by="date_ym") %>% left_join(Oil,by="date") %>% left_join(weather_temp,by="date")
 
 total$date_end <- ifelse(substr(total$date,5,6) %>% as.numeric() >= 12,1,0)
+```
+
+## 이전 거래량
+
+```{r}
 total$before_count <- c(1,total$count[-377])
 ```
+
 
 ## 정부정책
 
