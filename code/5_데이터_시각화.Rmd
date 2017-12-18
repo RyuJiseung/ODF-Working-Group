@@ -122,7 +122,7 @@ Prices1 %>%
   ggplot(aes(x=ymd(date),y = value,color=variable)) + 
   geom_line() +
   scale_x_date(labels = date_format("%Y-%m-%d"))   + 
-  labs(y="연료단가",x="date")+ facet_wrap(~ variable)+ theme(axis.text.x = element_text(angle = 90, hjust = 1))
+  labs(y="물가지수",x="date")+ facet_wrap(~ variable)+ theme(axis.text.x = element_text(angle = 90, hjust = 1))
 ```
 
 ```{r}

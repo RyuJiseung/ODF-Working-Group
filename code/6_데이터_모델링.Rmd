@@ -50,28 +50,6 @@ sqrt(mean((total_test$pred - total_test$price)^2))
 ```
 
 
-## Ridge Regression
-```{r}
-# total_train <- total_train %>% select(-pred)
-# total_test <- total_test %>% select(-pred)
-# 
-# x=as.matrix(total_train %>% select(-price)%>% select(-date))
-# y=as.matrix(total_train %>% select(price)%>% select(-date))
-# glm.fit.in <- cv.glmnet(x,y,alpha=1)
-# plot(glm.fit.in)
-# glm.fit.in$coef
-# total_train$pred <- predict(glm.fit.in,total_train)
-# total_test$pred <- predict(glm.fit.in,total_test)
-# 
-# total_s <- total_train %>% bind_rows(total_test)
-# total_s %>% select(date,price,pred) %>% ggplot(aes(x=ymd(date),y=price))+
-#   geom_point(color="black") + geom_point(aes(y=pred),color="red") + geom_vline(xintercept = ymd(20170530))
-# 
-# sqrt(mean((total_train$pred - total_train$price)^2))
-# sqrt(mean((total_test$pred - total_test$price)^2))
-```
-
-
 ## RandomForest 
 ```{r}
 total_train <- total_train %>% select(-pred)
