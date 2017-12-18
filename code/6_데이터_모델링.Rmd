@@ -36,7 +36,7 @@ total_test <- total %>% subset(date>20170600)
 # total_train <- total_train %>% select(-pred)
 # total_test <- total_test %>% select(-pred)
 
-summary(lm.fit.in<-lm(price ~ . ,data=total_train ))
+summary(lm.fit.in<-lm(price ~ . ,data=total_train %>% select(-date) ))
 
 total_train$pred <- predict(lm.fit.in,total_train)
 total_test$pred <- predict(lm.fit.in,total_test)
@@ -49,11 +49,34 @@ sqrt(mean((total_train$pred - total_train$price)^2))
 sqrt(mean((total_test$pred - total_test$price)^2))
 ```
 
+
+## Ridge Regression
+```{r}
+# total_train <- total_train %>% select(-pred)
+# total_test <- total_test %>% select(-pred)
+# 
+# x=as.matrix(total_train %>% select(-price)%>% select(-date))
+# y=as.matrix(total_train %>% select(price)%>% select(-date))
+# glm.fit.in <- cv.glmnet(x,y,alpha=1)
+# plot(glm.fit.in)
+# glm.fit.in$coef
+# total_train$pred <- predict(glm.fit.in,total_train)
+# total_test$pred <- predict(glm.fit.in,total_test)
+# 
+# total_s <- total_train %>% bind_rows(total_test)
+# total_s %>% select(date,price,pred) %>% ggplot(aes(x=ymd(date),y=price))+
+#   geom_point(color="black") + geom_point(aes(y=pred),color="red") + geom_vline(xintercept = ymd(20170530))
+# 
+# sqrt(mean((total_train$pred - total_train$price)^2))
+# sqrt(mean((total_test$pred - total_test$price)^2))
+```
+
+
 ## RandomForest 
 ```{r}
 total_train <- total_train %>% select(-pred)
 total_test <- total_test %>% select(-pred)
-rf<-randomForest(price~. ,total_train ,ntree=200,importance=T)
+rf<-randomForest(price~. ,total_train %>% select(-date) ,ntree=200,importance=T)
 plot(rf)
 
 #가장 큰 영향력 있는 변수가 맨 위에 온다.
@@ -85,7 +108,7 @@ HIDDEN_NODES<-INPUT_NODES*2
 OUTPUT_NODES<-5
 ITERATION<-100
 
-nnet_md<-nnet(formula = price~. ,data= total_train ,size=5,linout = TRUE,rang = 0.1,skip=TRUE,maxit = ITERATION)
+nnet_md<-nnet(formula = price~. ,data= total_train %>% select(-date),size=5,linout = TRUE,rang = 0.1,skip=TRUE,maxit = ITERATION)
 #sizt=은닉층 노드 수
 #linout=FALSE 모델 학습 시 모델의 출력과 원하는 값을 비교할 때 사용할 함수. TRUE면 엔트로피,FALSE면 SSE가 사용된다.
 #skip:입력변수가 출력변수로 은닉층 없이 연결되는지 여부, 직접 연결시 T
@@ -109,7 +132,7 @@ sqrt(mean((total_test$pred - total_test$price)^2))
 total_train <- total_train %>% select(-pred)
 total_test <- total_test %>% select(-pred)
 
-boosting <- gbm(price~., data = total_train ,
+boosting <- gbm(price~., data = total_train %>% select(-date),
                 distribution = "gaussian",
                 n.trees = 10000)
 
