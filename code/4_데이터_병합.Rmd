@@ -29,7 +29,7 @@ needs(tidyverse,scales,grid,gridExtra,RColorBrewer,corrplot,readr,stringr,
 http://www.knrec.or.kr/knrec/index.asp
 
 ```{r}
-rec <- read_csv("../data_need/REC_SMP.csv")
+rec <- read_csv("data_need/REC_SMP.csv")
 
 rec$date_ym <- substr(rec$date,1,6) %>% as.numeric()
 ```
@@ -40,7 +40,7 @@ rec$date_ym <- substr(rec$date,1,6) %>% as.numeric()
 http://data.seoul.go.kr/openinf/linkview.jsp?infId=OA-11716
 
 ```{r}
-Prices  <- read_csv("../data_need/물가.csv")[-72,]
+Prices  <- read_csv("data_need/물가.csv")[-72,]
 Prices$date <- Prices %>% with(ifelse(nchar(Prices$date)==6,paste0(date,"0.01"),paste0(date,".01")))
 Prices$date <- gsub("-","",as.Date(Prices$date,"%Y.%m.%d"))
 
@@ -60,7 +60,7 @@ Prices <- Prices %>% select(-date)
 http://www.opinet.co.kr/glopcoilSelect.do#
 
 ```{r}
-Oil <- read.table("../data_need/National_OIL.csv",sep=",",header=TRUE)
+Oil <- read.table("data_need/National_OIL.csv",sep=",",header=TRUE)
 colnames(Oil)[1] <- "date"
 Oil$date <- gsub("_","",Oil$date)
 Oil$date <- paste0("20",Oil$date) %>% as.numeric()
@@ -72,7 +72,7 @@ Oil$date <- paste0("20",Oil$date) %>% as.numeric()
 http://www.kweather.co.kr/main/main.html
 
 ```{r}
-weather <- read_csv("../data_need/weather_전라남도.csv")
+weather <- read_csv("data_need/weather_전라남도.csv")
 weather <- weather %>% subset(date <= 20171212)
 weather$check <- ifelse(weather$date %in% rec$date[rec$date>=20160101],weather$date,0)
 
@@ -127,9 +127,11 @@ total$agenda1 <- ifelse(total$date>=20171100 & total$date<20171230,1,total$agend
 
 total <- total %>% select(-date_ym,-count,-max_price,-min_price)
 
-# write.csv(total,"jiseung_20120101_20171130.csv",row.names=FALSE)
+write.csv(total,"jiseung_20120101_20171130.csv",row.names=FALSE)
 
-total <- total %>% subset(date>=20160304 & date<=20171200)
+total <- total %>% subset(date>=20160304 & date<=20171200) %>% select(-location_in,-location_out,-energy_sun,-energy_general)
 
-# write.csv(total,"jiseung_20160304_20171130.csv",row.names=FALSE)
+total$type <- total %>% with(ifelse(type=="energy_total_location_in","location_in","location_out"))
+total$type <- total$type %>% as.factor()
+write.csv(total,"jiseung_20160304_20171130.csv",row.names=FALSE)
 ```

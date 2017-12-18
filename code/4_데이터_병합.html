@@ -315,11 +315,13 @@ total<span class="op">$</span>agenda1 &lt;-<span class="st"> </span><span class=
 
 total &lt;-<span class="st"> </span>total <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">select</span>(<span class="op">-</span>date_ym,<span class="op">-</span>count,<span class="op">-</span>max_price,<span class="op">-</span>min_price)
 
-<span class="co"># write.csv(total,&quot;jiseung_20120101_20171130.csv&quot;,row.names=FALSE)</span>
+<span class="kw">write.csv</span>(total,<span class="st">&quot;jiseung_20120101_20171130.csv&quot;</span>,<span class="dt">row.names=</span><span class="ot">FALSE</span>)
 
-total &lt;-<span class="st"> </span>total <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">subset</span>(date<span class="op">&gt;=</span><span class="dv">20160304</span> <span class="op">&amp;</span><span class="st"> </span>date<span class="op">&lt;=</span><span class="dv">20171200</span>)
+total &lt;-<span class="st"> </span>total <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">subset</span>(date<span class="op">&gt;=</span><span class="dv">20160304</span> <span class="op">&amp;</span><span class="st"> </span>date<span class="op">&lt;=</span><span class="dv">20171200</span>) <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">select</span>(<span class="op">-</span>location_in,<span class="op">-</span>location_out,<span class="op">-</span>energy_sun,<span class="op">-</span>energy_general)
 
-<span class="co"># write.csv(total,&quot;jiseung_20160304_20171130.csv&quot;,row.names=FALSE)</span></code></pre></div>
+total<span class="op">$</span>type &lt;-<span class="st"> </span>total <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">with</span>(<span class="kw">ifelse</span>(type<span class="op">==</span><span class="st">&quot;energy_total_location_in&quot;</span>,<span class="st">&quot;location_in&quot;</span>,<span class="st">&quot;location_out&quot;</span>))
+total<span class="op">$</span>type &lt;-<span class="st"> </span>total<span class="op">$</span>type <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">as.factor</span>()
+<span class="kw">write.csv</span>(total,<span class="st">&quot;jiseung_20160304_20171130.csv&quot;</span>,<span class="dt">row.names=</span><span class="ot">FALSE</span>)</code></pre></div>
 </div>
 </div>
 
