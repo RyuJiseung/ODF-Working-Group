@@ -114,7 +114,7 @@ SMP 가격이 높아지면서 REC 가격 상승(최근)
 http://data.seoul.go.kr/openinf/linkview.jsp?infId=OA-11716
 
 ```{r}
-Prices1  <- total %>% select(1,9:13)
+Prices1  <- total %>% select(1,5:9)
 Prices1 <- melt(Prices1, id.vars = "date")
 Prices1$value <- Prices1$value %>% as.numeric()
 
@@ -126,7 +126,7 @@ Prices1 %>%
 ```
 
 ```{r}
-Prices2 <- total %>% select(1,14:18)
+Prices2 <- total %>% select(1,10:14)
 Prices2 <- melt(Prices2, id.vars = "date")
 Prices2$value <- Prices2$value %>% as.numeric()
 
@@ -143,7 +143,7 @@ Prices2 %>%
 http://www.kweather.co.kr/main/main.html
 
 ```{r}
-weather <- total %>% select(1,22:31)
+weather <- total %>% select(1,18:27)
 ```
 
 
@@ -169,7 +169,7 @@ weather %>% select(1,8:11) %>%
 http://www.opinet.co.kr/glopcoilSelect.do#
 
 ```{r}
-Oil <- total %>% select(1,19:21) %>% subset(Dubai!=0 & WTI!=0)
+Oil <- total %>% select(1,15:17) %>% subset(Dubai!=0 & WTI!=0)
 Oil1 <- melt(Oil, id.vars = "date")
 Oil1$value <- Oil1$value %>% as.numeric()
 
