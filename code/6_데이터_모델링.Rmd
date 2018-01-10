@@ -29,6 +29,7 @@ total_train <- total %>% subset(date>=20160304 & date<=20170600)
 total_test <- total %>% subset(date>20170600)
 ```
 
+
 # 모델링
 
 ## Regression
@@ -40,6 +41,30 @@ summary(lm.fit.in<-lm(price ~ . ,data=total_train %>% select(-date) ))
 
 total_train$pred <- predict(lm.fit.in,total_train)
 total_test$pred <- predict(lm.fit.in,total_test)
+
+total_s <- total_train %>% bind_rows(total_test)
+total_s %>% select(date,price,pred) %>% ggplot(aes(x=ymd(date),y=price))+
+  geom_point(color="black") + geom_point(aes(y=pred),color="red") + geom_vline(xintercept = ymd(20170530))
+
+sqrt(mean((total_train$pred - total_train$price)^2))
+sqrt(mean((total_test$pred - total_test$price)^2))
+```
+
+## Ridge Regression
+```{r}
+total_train <- total_train %>% select(-pred)
+total_test <- total_test %>% select(-pred)
+
+x_total_train <- as.matrix(total_train %>% select(-date,-price) )
+x_total_test <- as.matrix(total_test %>% select(-date,-price) )
+
+y_total_train <- as.matrix(total_train %>% select(price) )
+y_total_test <- as.matrix(total_test %>% select(price) )
+
+fit.ridge <- cv.glmnet(x_total_train,y_total_train,family="gaussian", alpha=0)
+
+total_train$pred <- predict(fit.ridge, s=fit.ridge$lambda.1se, newx=x_total_train)
+total_test$pred <- predict(fit.ridge, s=fit.ridge$lambda.1se, newx=x_total_test)
 
 total_s <- total_train %>% bind_rows(total_test)
 total_s %>% select(date,price,pred) %>% ggplot(aes(x=ymd(date),y=price))+
@@ -73,8 +98,8 @@ total_s %>% select(date,price,pred) %>% ggplot(aes(x=ymd(date),y=price))+
 
 sqrt(mean((total_train$pred - total_train$price)^2))
 sqrt(mean((total_test$pred - total_test$price)^2))
-
 ```
+
 
 ## Neuralnet
 ```{r}
@@ -86,7 +111,7 @@ HIDDEN_NODES<-INPUT_NODES*2
 OUTPUT_NODES<-5
 ITERATION<-100
 
-nnet_md<-nnet(formula = price~. ,data= total_train %>% select(-date),size=5,linout = TRUE,rang = 0.1,skip=TRUE,maxit = ITERATION)
+nnet_md <- nnet(formula = price~. ,data= total_train %>% select(-date),size=5,linout = TRUE,rang = 0.1,skip=TRUE,maxit = ITERATION)
 #sizt=은닉층 노드 수
 #linout=FALSE 모델 학습 시 모델의 출력과 원하는 값을 비교할 때 사용할 함수. TRUE면 엔트로피,FALSE면 SSE가 사용된다.
 #skip:입력변수가 출력변수로 은닉층 없이 연결되는지 여부, 직접 연결시 T

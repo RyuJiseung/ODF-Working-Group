@@ -71,7 +71,7 @@ ggplot(data=rec, aes(x=ymd(date),y = SMP,color=type)) +
 
 # 2016-03-04 이후 데이터 로드
 ```{r}
-total <- read.csv("../data_need/jiseung_20160304_20171130.csv")
+# total <- read.csv("../data_need/jiseung_20160304_20171130.csv")
 ```
 
 # 변수 EDA
@@ -114,7 +114,7 @@ SMP 가격이 높아지면서 REC 가격 상승(최근)
 http://data.seoul.go.kr/openinf/linkview.jsp?infId=OA-11716
 
 ```{r}
-Prices1  <- total %>% select(1,5:9)
+Prices1  <- total %>% select(1,which(colnames(total) == "생활물가지수"):(which(colnames(total) == "생활물가지수")+4))
 Prices1 <- melt(Prices1, id.vars = "date")
 Prices1$value <- Prices1$value %>% as.numeric()
 
@@ -126,7 +126,7 @@ Prices1 %>%
 ```
 
 ```{r}
-Prices2 <- total %>% select(1,10:14)
+Prices2 <- total %>% select(1,which(colnames(total) == "생활물가지수_up"):(which(colnames(total) == "생활물가지수_up")+4))
 Prices2 <- melt(Prices2, id.vars = "date")
 Prices2$value <- Prices2$value %>% as.numeric()
 
@@ -143,12 +143,7 @@ Prices2 %>%
 http://www.kweather.co.kr/main/main.html
 
 ```{r}
-weather <- total %>% select(1,18:27)
-```
-
-
-```{r}
-weather %>% select(1:7) %>% melt(id.vars = "date") %>%
+total  %>% select(1,which(colnames(total) == "구름많음"):(which(colnames(total) == "구름많음")+5)) %>% melt(id.vars = "date") %>%
   ggplot(aes(x=ymd(date),y = value,color=variable)) + 
   geom_line() +
   scale_x_date(labels = date_format("%Y-%m-%d"))   + 
@@ -156,7 +151,7 @@ weather %>% select(1:7) %>% melt(id.vars = "date") %>%
 ```
 
 ```{r}
-weather %>% select(1,8:11) %>% 
+total %>% select(1,which(colnames(total) == "min_Temperature_sum"):(which(colnames(total) == "min_Temperature_sum")+3)) %>% 
   melt(id.vars = "date") %>%
   ggplot(aes(x=ymd(date),y = value,color=variable)) + 
   geom_line() +
@@ -169,7 +164,7 @@ weather %>% select(1,8:11) %>%
 http://www.opinet.co.kr/glopcoilSelect.do#
 
 ```{r}
-Oil <- total %>% select(1,15:17) %>% subset(Dubai!=0 & WTI!=0)
+Oil <- total %>% select(1,which(colnames(total) == "Dubai"):(which(colnames(total) == "Dubai")+2)) %>% subset(Dubai!=0 & WTI!=0)
 Oil1 <- melt(Oil, id.vars = "date")
 Oil1$value <- Oil1$value %>% as.numeric()
 
