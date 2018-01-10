@@ -1,0 +1,192 @@
+
+---
+title: "7. 데이터 모델링 검증"
+date: '`r Sys.Date()`'
+output:
+  html_document:
+    number_sections: true
+    fig_caption: true
+    toc: true
+    fig_width: 7
+    fig_height: 4.5
+    theme: cosmo
+    highlight: tango
+---
+
+# 패키지 로드
+```{r, message = FALSE}
+# general visualisation
+library(needs)
+needs(tidyverse,scales,grid,gridExtra,RColorBrewer,corrplot,readr,stringr,
+        data.table,tibble,tidyr,stringr,forcats,lubridate,ggforce,ggridges,randomForest,nnet,gbm,glmnet)
+```
+
+# 데이터 셋 분리
+```{r, results='hide',warning=FALSE}
+total <- read.csv("../data_need/jiseung_20160304_20171130.csv") %>% select(-type)
+
+total$date %>% summary
+
+startdate <- c(20160301,20160401,20160501,20160601,20160701,20160801,20160901,20161001,20161101,20161201,20170101,20170201)
+cutdate <- c(20161001,20161101,20161201,20170101,20170201,20170301,20170401,20170501,20170601,20170701,20170801,20170901)
+finaldate <- c(20170101,20170201,20170301,20170401,20170501,20170601,20170701,20170801,20170901,20171001,20171101,20171201)
+
+regression_train <- c()
+regression_test <- c()
+ridge_train <- c()
+ridge_test <- c()
+randomforest_train <- c()
+randomforest_test <- c()
+neuralnet_train <- c()
+neuralnet_test <- c()
+boosting_train <- c()
+boosting_test <- c()
+
+
+for (i in 1:length(startdate)){
+  
+total_train <- total %>% subset(date>=startdate[i] & date<=cutdate[i]) 
+total_test <- total %>% subset(date>cutdate[i] & date<=finaldate[i])
+
+
+# 모델링
+
+## Regression
+
+# total_train <- total_train %>% select(-pred)
+# total_test <- total_test %>% select(-pred)
+
+summary(lm.fit.in<-lm(price ~ . ,data=total_train %>% select(-date) ))
+
+total_train$pred <- predict(lm.fit.in,total_train)
+total_test$pred <- predict(lm.fit.in,total_test)
+
+total_s <- total_train %>% bind_rows(total_test)
+total_s %>% select(date,price,pred) %>% ggplot(aes(x=ymd(date),y=price))+
+  geom_point(color="black") + geom_point(aes(y=pred),color="red") + geom_vline(xintercept = ymd(cutdate[i]))
+
+regression_train[i] <- sqrt(mean((total_train$pred - total_train$price)^2))
+regression_test[i] <- sqrt(mean((total_test$pred - total_test$price)^2))
+
+## Ridge Regression
+
+total_train <- total_train %>% select(-pred)
+total_test <- total_test %>% select(-pred)
+
+x_total_train <- as.matrix(total_train %>% select(-date,-price) )
+x_total_test <- as.matrix(total_test %>% select(-date,-price) )
+
+y_total_train <- as.matrix(total_train %>% select(price) )
+y_total_test <- as.matrix(total_test %>% select(price) )
+
+fit.ridge <- cv.glmnet(x_total_train,y_total_train,family="gaussian", alpha=0)
+
+total_train$pred <- predict(fit.ridge, s=fit.ridge$lambda.1se, newx=x_total_train)
+total_test$pred <- predict(fit.ridge, s=fit.ridge$lambda.1se, newx=x_total_test)
+
+total_s <- total_train %>% bind_rows(total_test)
+total_s %>% select(date,price,pred) %>% ggplot(aes(x=ymd(date),y=price))+
+  geom_point(color="black") + geom_point(aes(y=pred),color="red") + geom_vline(xintercept = ymd(cutdate[i]))
+
+ridge_train[i] <- sqrt(mean((total_train$pred - total_train$price)^2))
+ridge_test[i] <- sqrt(mean((total_test$pred - total_test$price)^2))
+
+
+## RandomForest 
+
+total_train <- total_train %>% select(-pred)
+total_test <- total_test %>% select(-pred)
+rf<-randomForest(price~. ,total_train %>% select(-date) ,ntree=200,importance=T)
+
+
+#가장 큰 영향력 있는 변수가 맨 위에 온다.
+var.imp<-data.frame(importance(rf,type=2))
+#importance는 지니계수 사용한 것임.
+var.imp$Variables <- row.names(var.imp)
+temp <- var.imp[order(var.imp$IncNodePurity,decreasing = T),]
+data.frame(Variables=temp$Variables,IncNodePurity=temp$IncNodePurity)
+
+total_train$pred <- predict(rf,total_train)
+total_test$pred <- predict(rf,total_test)
+
+total_s <- total_train %>% bind_rows(total_test)
+total_s %>% select(date,price,pred) %>% ggplot(aes(x=ymd(date),y=price))+
+  geom_point(color="black") + geom_point(aes(y=pred),color="red") + geom_vline(xintercept = ymd(cutdate[i]))
+
+randomforest_train[i] <- sqrt(mean((total_train$pred - total_train$price)^2))
+randomforest_test[i] <- sqrt(mean((total_test$pred - total_test$price)^2))
+
+
+
+## Neuralnet
+
+total_train <- total_train %>% select(-pred)
+total_test <- total_test %>% select(-pred)
+
+INPUT_NODES<-10
+HIDDEN_NODES<-INPUT_NODES*2
+OUTPUT_NODES<-5
+ITERATION<-100
+
+nnet_md <- nnet(formula = price~. ,data= total_train %>% select(-date),size=5,linout = TRUE,rang = 0.1,skip=TRUE,maxit = ITERATION)
+#sizt=은닉층 노드 수
+#linout=FALSE 모델 학습 시 모델의 출력과 원하는 값을 비교할 때 사용할 함수. TRUE면 엔트로피,FALSE면 SSE가 사용된다.
+#skip:입력변수가 출력변수로 은닉층 없이 연결되는지 여부, 직접 연결시 T
+#rang : 가중치의 초기값이 없다면 임의로 초기값 정함, (n, -rang, rang)
+#maxit : 훈련 최적화를 위한 반복횟수
+
+#모델완성
+total_train$pred<-predict(nnet_md,total_train,type="raw")
+total_test$pred<-predict(nnet_md,total_test,type="raw")
+
+total_s <- total_train %>% bind_rows(total_test)
+total_s %>% select(date,price,pred) %>% ggplot(aes(x=ymd(date),y=price))+
+  geom_point(color="black") + geom_point(aes(y=pred),color="red") + geom_vline(xintercept = ymd(cutdate[i]))
+
+neuralnet_train[i] <- sqrt(mean((total_train$pred - total_train$price)^2))
+neuralnet_test[i] <- sqrt(mean((total_test$pred - total_test$price)^2))
+
+
+## Boosting
+
+total_train <- total_train %>% select(-pred)
+total_test <- total_test %>% select(-pred)
+
+boosting <- gbm(price~., data = total_train %>% select(-date),
+                distribution = "gaussian",
+                n.trees = 10000)
+
+
+#모델완성
+total_train$pred<-predict(boosting,total_train,n.trees=10000)
+total_test$pred<-predict(boosting,total_test,n.trees=10000)
+
+total_s <- total_train %>% bind_rows(total_test)
+total_s %>% select(date,price,pred) %>% ggplot(aes(x=ymd(date),y=price))+
+  geom_point(color="black") + geom_point(aes(y=pred),color="red") + geom_vline(xintercept = ymd(cutdate[i]))
+
+boosting_train[i] <- sqrt(mean((total_train$pred - total_train$price)^2))
+boosting_test[i] <- sqrt(mean((total_test$pred - total_test$price)^2))
+
+}
+
+
+```
+
+
+```{r}
+
+regression_train %>% mean
+ridge_train %>% mean
+randomforest_train %>% mean
+neuralnet_train %>% mean
+boosting_train %>% mean
+
+regression_test %>% mean
+ridge_test %>% mean
+randomforest_test %>% mean
+neuralnet_test %>% mean
+boosting_test %>% mean
+
+```
+
