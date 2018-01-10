@@ -68,8 +68,6 @@ ggplot(data=rec, aes(x=ymd(date),y = SMP,color=type)) +
 | 20160304~20170315 | Total       | In/Out   | Yes           |
 | 20170328~20171128 | Total       | In/Out   | Yes           |
 
-
-# 2016-03-04 이후 데이터 로드
 ```{r}
 # total <- read.csv("../data_need/jiseung_20160304_20171130.csv")
 ```
